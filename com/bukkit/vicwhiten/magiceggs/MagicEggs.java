@@ -5,7 +5,8 @@ import java.util.logging.Logger;
 
 import org.anjocaido.groupmanager.GroupManager;
 import org.anjocaido.groupmanager.dataholder.worlds.WorldsHolder;
-import org.bukkit.block.Block;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.event.Event;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -20,7 +21,8 @@ public class MagicEggs extends JavaPlugin
 	private final MagicEggsPlayerListener playerListener = new MagicEggsPlayerListener(this);
 	GroupManager gm;
 	WorldsHolder wd;
-    public HashMap<Block, Boolean> isModified = new HashMap<Block, Boolean>();
+    public HashMap<Location, Material> isModified = new HashMap<Location, Material>();
+    public HashMap<String, Boolean> canThrow = new HashMap<String, Boolean>();
 	public void onDisable()
 	{
 		PluginDescriptionFile pdfFile = this.getDescription();

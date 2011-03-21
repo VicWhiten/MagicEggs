@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -77,7 +78,7 @@ public class MagicEggsPlayerListener extends PlayerListener
     }
     public void createIgloo(Block source)
     {
-    	setBlockCircle(source, Material.SNOW, 30000, 4, true);
+    	setBlockCircle(source.getRelative(BlockFace.DOWN), Material.SNOW_BLOCK, 30000, 4, true);
     	setBlockRing(source, Material.SNOW_BLOCK,30000, 4, true);
     	setBlockRing(source.getRelative(BlockFace.UP), Material.SNOW_BLOCK,30000, 4, true);
     	setBlockCircle(source.getRelative(BlockFace.UP).getRelative(BlockFace.UP), Material.SNOW_BLOCK,30000, 4, true);
@@ -86,18 +87,40 @@ public class MagicEggsPlayerListener extends PlayerListener
     }
     
     public void setBlockCircle(Block block, Material mat, int time, int count, boolean allowAir)
+    { 
+    	setBlockCircleHelper(block,mat,time,count,allowAir);
+    	Timer t = new Timer();
+    	t.schedule(new RevertBlockCircleTimerTask(block, count), time);
+    }
+    public void setBlockCircleHelper(Block block, Material mat, int time, int count, boolean allowAir)
     {
     	
     	
-    	setBlock(block, mat, time, allowAir);
+    	setBlock(block, mat, allowAir);
 
         	if(count >= 1)
         	{
-        		setBlockCircle(block.getRelative(BlockFace.SOUTH), mat, time, count -1, allowAir);
-        		setBlockCircle(block.getRelative(BlockFace.NORTH), mat, time, count -1, allowAir);
-        		setBlockCircle(block.getRelative(BlockFace.EAST), mat, time, count -1, allowAir);
-        		setBlockCircle(block.getRelative(BlockFace.WEST),mat, time, count -1, allowAir);
+        		setBlockCircleHelper(block.getRelative(BlockFace.SOUTH), mat, time, count -1, allowAir);
+        		setBlockCircleHelper(block.getRelative(BlockFace.NORTH), mat, time, count -1, allowAir);
+        		setBlockCircleHelper(block.getRelative(BlockFace.EAST), mat, time, count -1, allowAir);
+        		setBlockCircleHelper(block.getRelative(BlockFace.WEST),mat, time, count -1, allowAir);
         	}
+    }
+    
+    public void restoreBlockCircle(Block block,int count)
+    {
+
+    	restoreBlock(block);
+
+    	
+    	if(count >= 1)
+    	{
+    		restoreBlockCircle(block.getRelative(BlockFace.SOUTH),count - 1);
+    		restoreBlockCircle(block.getRelative(BlockFace.NORTH),count - 1);
+    		restoreBlockCircle(block.getRelative(BlockFace.EAST),count - 1);
+    		restoreBlockCircle(block.getRelative(BlockFace.WEST),count - 1);
+    	}
+    	
     }
     
     public void setBlockRing(Block block, Material mat, int time, int count, boolean allowAir)
@@ -108,8 +131,18 @@ public class MagicEggsPlayerListener extends PlayerListener
     	setRingQuad(block, mat, BlockFace.EAST, BlockFace.SOUTH, count, time, allowAir);
     	setRingQuad(block, mat, BlockFace.SOUTH, BlockFace.WEST, count, time, allowAir);
     	setRingQuad(block, mat, BlockFace.WEST, BlockFace.NORTH, count, time, allowAir);
+    	
+    	Timer t = new Timer();
+    	t.schedule(new RevertBlockRingTimerTask(block, count), time);
     }
     
+    public void restoreBlockRing(Block block,int count)
+    {
+    	restoreRingQuad(block, BlockFace.NORTH, BlockFace.EAST, count);
+    	restoreRingQuad(block, BlockFace.EAST, BlockFace.SOUTH, count);
+    	restoreRingQuad(block, BlockFace.SOUTH, BlockFace.WEST, count);
+    	restoreRingQuad(block, BlockFace.WEST, BlockFace.NORTH, count);
+    }
     
     public void setRingQuad(Block source, Material mat, BlockFace dir1, BlockFace dir2, int size, int time, boolean allowAir)
     {
@@ -126,55 +159,107 @@ public class MagicEggsPlayerListener extends PlayerListener
     		{
     			block = block.getRelative(dir2);
     		}
-    		setBlock(block, mat, time, allowAir);
+    		setBlock(block, mat, allowAir);
+    		
+    		x--;
+    		y++;
+    	}
+    }
+    
+    public void restoreRingQuad(Block source, BlockFace dir1, BlockFace dir2, int size)
+    {
+    	int x = size;
+    	int y = 0;
+    	while(x >= 0)
+    	{
+    		Block block = source;
+    		for(int i=0; i<x; i++)
+    		{
+    			block = block.getRelative(dir1);
+    		}
+    		for(int i=0; i<y; i++)
+    		{
+    			block = block.getRelative(dir2);
+    		}
+
+    		restoreBlock(block);
+
     		x--;
     		y++;
     	}
     }
      
-    public void setBlock(Block block, Material mat, int time, boolean allowAir)
+    public void setBlock(Block block, Material mat, boolean allowAir)
     {
-    	if (!plugin.isModified.containsKey(block) && checkSensativeBlock(block) && block.getType() != mat &&
+    	if (!plugin.isModified.containsKey(block.getLocation()) && checkSensativeBlock(block) && block.getType() != mat &&
     			(block.getType() != Material.AIR || allowAir))
 		{
-    		if((mat != Material.LAVA && mat != Material.WATER) ||
+    		if((mat != Material.LAVA && mat != Material.WATER && mat != Material.STATIONARY_WATER && mat != Material.STATIONARY_LAVA)||
     				(block.getRelative(BlockFace.NORTH).getType() != Material.AIR &&
         			block.getRelative(BlockFace.EAST).getType() != Material.AIR &&
         			block.getRelative(BlockFace.SOUTH).getType() != Material.AIR &&
         			block.getRelative(BlockFace.WEST).getType() != Material.AIR ))
         	{
-        		Timer t = new Timer();
-        		t.schedule(new revertBlockTimerTask(plugin,block, block.getType()), time);
+        		plugin.isModified.put(block.getLocation(), block.getType());
         		block.setType(mat);	
-        		plugin.isModified.put(block, true);
+
         	}
 		}
 
     }
+    
+    public void restoreBlock(Block block)
+    {
+    	Material original = plugin.isModified.get(block.getLocation());
+    	if(original != null)
+    	{
+    		System.out.println("Setting block to type " + original);
+    		block.setType(plugin.isModified.get(block.getLocation()));
+			plugin.isModified.remove(block.getLocation());
+    	}
+    }
     public boolean checkSensativeBlock(Block block)
     {
-    	if (block.getType() != Material.CHEST && block.getType() != Material.SIGN_POST && block.getType() != Material.WORKBENCH && block.getType() != Material.FURNACE && block.getType() != Material.BURNING_FURNACE && block.getType() != Material.WOODEN_DOOR && block.getType() != Material.LADDER && block.getType() != Material.WALL_SIGN && block.getType() != Material.IRON_DOOR_BLOCK && block.getType() != Material.SAPLING && block.getType() != Material.REDSTONE_TORCH_OFF && block.getType() != Material.REDSTONE_TORCH_ON && block.getType() != Material.MOB_SPAWNER && block.getType() != Material.DIODE_BLOCK_OFF && block.getType() != Material.DIODE_BLOCK_ON && block.getType() != Material.PAINTING && block.getType() != Material.WOOL && block.getType() != Material.SPONGE && block.getType() != Material.REDSTONE_WIRE && block.getType() != Material.LEVER && block.getType() != Material.STONE_PLATE && block.getType() != Material.WOOD_PLATE && block.getType() != Material.STONE_BUTTON && block.getType() != Material.RAILS && block.getType() != Material.TORCH && block.getType() != Material.FENCE && block.getType() != Material.WOOD_STAIRS && block.getType() != Material.COBBLESTONE_STAIRS)
+    	if (block.getType() != Material.CHEST && block.getType() != Material.SIGN_POST && block.getType() != Material.WORKBENCH && block.getType() != Material.FURNACE && block.getType() != Material.BURNING_FURNACE && block.getType() != Material.WOODEN_DOOR && block.getType() != Material.LADDER && block.getType() != Material.WALL_SIGN && block.getType() != Material.IRON_DOOR_BLOCK && block.getType() != Material.SAPLING && block.getType() != Material.REDSTONE_TORCH_OFF && block.getType() != Material.REDSTONE_TORCH_ON && block.getType() != Material.MOB_SPAWNER && block.getType() != Material.DIODE_BLOCK_OFF && block.getType() != Material.DIODE_BLOCK_ON && block.getType() != Material.PAINTING && block.getType() != Material.WOOL && block.getType() != Material.SPONGE && block.getType() != Material.REDSTONE_WIRE && block.getType() != Material.LEVER && block.getType() != Material.STONE_PLATE && block.getType() != Material.WOOD_PLATE && block.getType() != Material.STONE_BUTTON && block.getType() != Material.RAILS && block.getType() != Material.TORCH && block.getType() != Material.FENCE && block.getType() != Material.WOOD_STAIRS && block.getType() != Material.COBBLESTONE_STAIRS && block.getType() != Material.WATER && block.getType() != Material.LAVA && block.getType() != Material.STATIONARY_WATER && block.getType() != Material.STATIONARY_LAVA)
         {
     		return true;
         }else return false;
     }
-}   
-    class revertBlockTimerTask extends TimerTask
+  
+    private class RevertBlockCircleTimerTask extends TimerTask
     {
     	Block block;
-    	Material origType;
-    	MagicEggs plugin;
-		public revertBlockTimerTask(MagicEggs plug, Block b, Material originalType)
+    	int size;
+		public RevertBlockCircleTimerTask(Block b, int count)
 		{
 			block = b;
-			origType = originalType;
-			plugin = plug;
+			size = count;
 			
 		}
 		public void run() {
-			block.setType(origType);
-			plugin.isModified.remove(block);
+			System.out.println("Reverting Circle");
+			restoreBlockCircle(block, size);
 			
 		}
     	
     }
+    
+    private class RevertBlockRingTimerTask extends TimerTask
+    {
+    	Block block;
+    	int size;
+		public RevertBlockRingTimerTask(Block b, int count)
+		{
+			block = b;
+			size = count;
+			
+		}
+		public void run() {
+			System.out.println("Reverting Ring");
+			restoreBlockRing(block, size);
+
+			
+		}
+    	
+    }
+}
