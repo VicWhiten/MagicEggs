@@ -19,6 +19,7 @@ public class MagicEggs extends JavaPlugin
 {
 	public static final Logger log = Logger.getLogger("Minecraft");
 	private final MagicEggsPlayerListener playerListener = new MagicEggsPlayerListener(this);
+	private final MagicEggsBlockListener blockListener = new MagicEggsBlockListener(this);
 	GroupManager gm;
 	WorldsHolder wd;
     public HashMap<Location, Material> isModified = new HashMap<Location, Material>();
@@ -43,6 +44,7 @@ public class MagicEggs extends JavaPlugin
             this.getPluginLoader().disablePlugin(this);
         }
 		pm.registerEvent(Event.Type.PLAYER_EGG_THROW, this.playerListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.BLOCK_PLACED, this.blockListener, Event.Priority.Normal, this);
 
         PluginDescriptionFile pdfFile = this.getDescription();
         System.out.println(pdfFile.getName()+" version "+pdfFile.getVersion()+" is enabled!");
