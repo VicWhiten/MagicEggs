@@ -4,8 +4,6 @@ import com.bukkit.vicwhiten.magiceggs.MagicEggsPlayerListener;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -67,8 +65,7 @@ public class MagicEggsPlayerListener extends PlayerListener
         	{
         		createCage(block);
         	}
-        	Timer t = new Timer();
-        	t.schedule(new ResetPlayerCooldownTimerTask(event.getPlayer()),  30000);
+        	plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new ResetPlayerCooldownTask(event.getPlayer()), 20 *30);
        		}catch(Exception e)
        		{
        			event.getPlayer().sendMessage("Spell Fizzled!");
@@ -103,8 +100,8 @@ public class MagicEggsPlayerListener extends PlayerListener
     }
     public void createPond(Block source)
     {
-    	setBlockCircle(source.getRelative(BlockFace.DOWN), Material.WATER, 4000, 4, false);
-    	setBlockCircle(source.getRelative(BlockFace.DOWN).getRelative(BlockFace.DOWN), Material.DIRT,4000,4,false);
+    	setBlockCircle(source.getRelative(BlockFace.DOWN), Material.WATER, 20*4, 4, false);
+    	setBlockCircle(source.getRelative(BlockFace.DOWN).getRelative(BlockFace.DOWN), Material.DIRT,20*4,4,false);
     	
     }
     public void createPitfall(Block source)
@@ -142,8 +139,7 @@ public class MagicEggsPlayerListener extends PlayerListener
     public void setBlockCircle(Block block, Material mat, int time, int count, boolean allowAir)
     { 
     	setBlockCircleHelper(block,mat,time,count,allowAir);
-    	Timer t = new Timer();
-    	t.schedule(new RevertBlockCircleTimerTask(block, count), time);
+    	plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new RevertBlockCircleTask(block,count), time);
     }
     public void setBlockCircleHelper(Block block, Material mat, int time, int count, boolean allowAir)
     {
@@ -185,8 +181,7 @@ public class MagicEggsPlayerListener extends PlayerListener
     	setRingQuad(block, mat, BlockFace.SOUTH, BlockFace.WEST, count, time, allowAir);
     	setRingQuad(block, mat, BlockFace.WEST, BlockFace.NORTH, count, time, allowAir);
     	
-    	Timer t = new Timer();
-    	t.schedule(new RevertBlockRingTimerTask(block, count), time);
+    	plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new RevertBlockRingTask(block,count), time);
     }
     
     public void restoreBlockRing(Block block,int count)
@@ -300,11 +295,11 @@ public class MagicEggsPlayerListener extends PlayerListener
         }else return false;
     }
   
-    private class RevertBlockCircleTimerTask extends TimerTask
+    private class RevertBlockCircleTask implements Runnable
     {
     	Block block;
     	int size;
-		public RevertBlockCircleTimerTask(Block b, int count)
+		public RevertBlockCircleTask(Block b, int count)
 		{
 			block = b;
 			size = count;
@@ -318,11 +313,11 @@ public class MagicEggsPlayerListener extends PlayerListener
     	
     }
     
-    private class RevertBlockRingTimerTask extends TimerTask
+    private class RevertBlockRingTask implements Runnable
     {
     	Block block;
     	int size;
-		public RevertBlockRingTimerTask(Block b, int count)
+		public RevertBlockRingTask(Block b, int count)
 		{
 			block = b;
 			size = count;
@@ -337,11 +332,11 @@ public class MagicEggsPlayerListener extends PlayerListener
     	
     }
     
-    private class ResetPlayerCooldownTimerTask extends TimerTask
+    private class ResetPlayerCooldownTask implements Runnable
     {
     	Player player;
     	
-    	public ResetPlayerCooldownTimerTask(Player name)
+    	public ResetPlayerCooldownTask(Player name)
     	{
     		player = name;
     		
